@@ -1,96 +1,96 @@
-name: CI/CD
-
-on:
-  push:
-    branches:
-      - 'main'
-      - 'develop'
-
-jobs:
-  build_test_image:
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/develop'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: 20
-
-      - name: Build Test Image
-        run: |
-          docker build -t ${{ secrets.DOCKER_TEST_IMAGE }} -f ./Dockerfile.staging .
-          docker logout
-          docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }} docker.io
-          docker push ${{ secrets.DOCKER_TEST_IMAGE }}
-          docker system prune -f
-
-  deploy_test:
-    runs-on: ubuntu-latest
-    needs: build_test_image
-    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Fetch Host Key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
-
-      - name: Deploy Test
-        run: |
-          ssh -v ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP }} "docker pull ${{ secrets.DOCKER_TEST_IMAGE }}"
-          ssh -v ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP }} "docker stop react-oz-app-test || true"
-          ssh -v ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP }} "docker rm react-oz-app-test || true"
-          ssh -v ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP }} "docker run --name react-oz-app-test -d -p 8090:80 ${{ secrets.DOCKER_TEST_IMAGE }}"
-          sleep 5  # Add a delay of 5 seconds
-          ssh -v ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP }} "docker image prune -af"
-
-  build_prod_image:
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: 20
-
-      - name: Build Prod Image
-        run: |
-          docker build -t ${{ secrets.DOCKER_PROD_IMAGE }} -f ./Dockerfile .
-          docker logout
-          docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }} docker.io
-          docker push ${{ secrets.DOCKER_PROD_IMAGE }}
-          docker system prune -f
-
-  deploy_prod:
-    runs-on: ubuntu-latest
-    needs: build_prod_image
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Fetch Host Key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
-
-      - name: Deploy Prod
-        run: |
-          ssh -v ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP }} "docker pull ${{ secrets.DOCKER_PROD_IMAGE }}"
-          ssh -v ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP }} "docker stop react-oz-app || true"
-          ssh -v ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP }} "docker rm react-oz-app || true"
-          ssh -v ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP }} "docker run --name react-oz-app -d -p 3030:80 ${{ secrets.DOCKER_PROD_IMAGE }}"
-          sleep 5  # Add a delay of 5 seconds
-          ssh -v ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP }} "docker image prune -af"
+#name: CI/CD
+#
+#on:
+#  push:
+#    branches:
+#      - 'main'
+#      - 'develop'
+#
+#jobs:
+#  build_test_image:
+#    runs-on: ubuntu-latest
+#    if: github.ref == 'refs/heads/develop'
+#    steps:
+#      - name: Checkout code
+#        uses: actions/checkout@v2
+#
+#      - name: Set up Node.js
+#        uses: actions/setup-node@v2
+#        with:
+#          node-version: 20
+#
+#      - name: Build Test Image
+#        run: |
+#          docker build -t ${{ secrets.DOCKER_TEST_IMAGE }} -f ./Dockerfile.staging .
+#          docker logout
+#          docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }} docker.io
+#          docker push ${{ secrets.DOCKER_TEST_IMAGE }}
+#          docker system prune -f
+#
+#  deploy_test:
+#    runs-on: ubuntu-latest
+#    needs: build_test_image
+#    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+#    steps:
+#      - name: Checkout code
+#        uses: actions/checkout@v2
+#
+#      - name: Fetch Host Key
+#        run: |
+#          mkdir -p ~/.ssh
+#          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+#          chmod 600 ~/.ssh/id_rsa
+#          ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
+#
+#      - name: Deploy Test
+#        run: |
+#          ssh -v ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP }} "docker pull ${{ secrets.DOCKER_TEST_IMAGE }}"
+#          ssh -v ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP }} "docker stop react-oz-app-test || true"
+#          ssh -v ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP }} "docker rm react-oz-app-test || true"
+#          ssh -v ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP }} "docker run --name react-oz-app-test -d -p 8090:80 ${{ secrets.DOCKER_TEST_IMAGE }}"
+#          sleep 5  # Add a delay of 5 seconds
+#          ssh -v ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP }} "docker image prune -af"
+#
+#  build_prod_image:
+#    runs-on: ubuntu-latest
+#    if: github.ref == 'refs/heads/main'
+#    steps:
+#      - name: Checkout code
+#        uses: actions/checkout@v2
+#
+#      - name: Set up Node.js
+#        uses: actions/setup-node@v2
+#        with:
+#          node-version: 20
+#
+#      - name: Build Prod Image
+#        run: |
+#          docker build -t ${{ secrets.DOCKER_PROD_IMAGE }} -f ./Dockerfile .
+#          docker logout
+#          docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }} docker.io
+#          docker push ${{ secrets.DOCKER_PROD_IMAGE }}
+#          docker system prune -f
+#
+#  deploy_prod:
+#    runs-on: ubuntu-latest
+#    needs: build_prod_image
+#    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+#    steps:
+#      - name: Checkout code
+#        uses: actions/checkout@v2
+#
+#      - name: Fetch Host Key
+#        run: |
+#          mkdir -p ~/.ssh
+#          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+#          chmod 600 ~/.ssh/id_rsa
+#          ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
+#
+#      - name: Deploy Prod
+#        run: |
+#          ssh -v ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP }} "docker pull ${{ secrets.DOCKER_PROD_IMAGE }}"
+#          ssh -v ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP }} "docker stop react-oz-app || true"
+#          ssh -v ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP }} "docker rm react-oz-app || true"
+#          ssh -v ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP }} "docker run --name react-oz-app -d -p 3030:80 ${{ secrets.DOCKER_PROD_IMAGE }}"
+#          sleep 5  # Add a delay of 5 seconds
+#          ssh -v ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP }} "docker image prune -af"
